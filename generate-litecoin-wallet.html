@@ -6,7 +6,7 @@
     
     generate-wallet.html (from https://litecoinpaperwallet.com)
     
-    Wallet design and portions of this code are © Copyright 2013 Canton Becker
+    Wallet design and portions of this code are ï¿½ Copyright 2013 Canton Becker
     Other portions of this code are copyrighted by their respective authors - see below.
     
 
@@ -5407,562 +5407,310 @@
 			*/
 			sha256ripe160: function (data) {
 				return Crypto.RIPEMD160(Crypto.SHA256(data, { asBytes: true }), { asBytes: true });
-			}
-		};
+				},
+	// double sha256
+	dsha256: function (data) {
+		return Crypto.SHA256(Crypto.SHA256(data, { asBytes: true }), { asBytes: true });
+	}
+};
 	</script>
-
-
-
-
 	<script type="text/javascript">
-	// UAParser.js v0.6.1
-	// Lightweight JavaScript-based User-Agent string parser
-	// https://github.com/faisalman/ua-parser-js
-	//
-	// Copyright © 2012-2013 Faisalman <fyzlman@gmail.com>
-	// Dual licensed under GPLv2 & MIT
-	
-	(function (window, undefined) {
-	
-		'use strict';
-	
-		//////////////
-		// Constants
-		/////////////
-	
-	
-		var EMPTY       = '',
-			UNKNOWN     = '?',
-			FUNC_TYPE   = 'function',
-			UNDEF_TYPE  = 'undefined',
-			OBJ_TYPE    = 'object',
-			MAJOR       = 'major',
-			MODEL       = 'model',
-			NAME        = 'name',
-			TYPE        = 'type',
-			VENDOR      = 'vendor',
-			VERSION     = 'version',
-			ARCHITECTURE= 'architecture',
-			CONSOLE     = 'console',
-			MOBILE      = 'mobile',
-			TABLET      = 'tablet';
-	
-	
-		///////////
-		// Helper
-		//////////
-	
-	
-		var util = {
-			has : function (str1, str2) {
-				return str2.toLowerCase().indexOf(str1.toLowerCase()) !== -1;
-			},
-			lowerize : function (str) {
-				return str.toLowerCase();
-			}
-		};
-	
-	
-		///////////////
-		// Map helper
-		//////////////
-	
-	
-		var mapper = {
-	
-			rgx : function () {
-	
-				// loop through all regexes maps
-				for (var result, i = 0, j, k, p, q, matches, match, args = arguments; i < args.length; i += 2) {
-	
-					var regex = args[i],       // even sequence (0,2,4,..)
-						props = args[i + 1];   // odd sequence (1,3,5,..)
-	
-					// construct object barebones
-					if (typeof(result) === UNDEF_TYPE) {
-						result = {};
-						for (p in props) {
-							q = props[p];
-							if (typeof(q) === OBJ_TYPE) {
-								result[q[0]] = undefined;
-							} else {
-								result[q] = undefined;
-							}
-						}
+/*
+* Copyright (c) 2010-2011 Intalio Pte, All Rights Reserved
+* 
+* Permission is hereby granted, free of charge, to any person obtaining a copy
+* of this software and associated documentation files (the "Software"), to deal
+* in the Software without restriction, including without limitation the rights
+* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+* copies of the Software, and to permit persons to whom the Software is
+* furnished to do so, subject to the following conditions:
+* 
+* The above copyright notice and this permission notice shall be included in
+* all copies or substantial portions of the Software.
+* 
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+* THE SOFTWARE.
+*/
+// https://github.com/cheongwy/node-scrypt-js
+(function () {
+
+	var MAX_VALUE = 2147483647;
+	var workerUrl = null;
+
+	//function scrypt(byte[] passwd, byte[] salt, int N, int r, int p, int dkLen)
+	/*
+	* N = Cpu cost
+	* r = Memory cost
+	* p = parallelization cost
+	* 
+	*/
+	window.Crypto_scrypt = function (passwd, salt, N, r, p, dkLen, callback) {
+		if (N == 0 || (N & (N - 1)) != 0) throw Error("N must be > 0 and a power of 2");
+
+		if (N > MAX_VALUE / 128 / r) throw Error("Parameter N is too large");
+		if (r > MAX_VALUE / 128 / p) throw Error("Parameter r is too large");
+
+		var PBKDF2_opts = { iterations: 1, hasher: Crypto.SHA256, asBytes: true };
+
+		var B = Crypto.PBKDF2(passwd, salt, p * 128 * r, PBKDF2_opts);
+
+		try {
+			var i = 0;
+			var worksDone = 0;
+			var makeWorker = function () {
+				if (!workerUrl) {
+					var code = '(' + scryptCore.toString() + ')()';
+					var blob;
+					try {
+						blob = new Blob([code], { type: "text/javascript" });
+					} catch (e) {
+						window.BlobBuilder = window.BlobBuilder || window.WebKitBlobBuilder || window.MozBlobBuilder || window.MSBlobBuilder;
+						blob = new BlobBuilder();
+						blob.append(code);
+						blob = blob.getBlob("text/javascript");
 					}
-	
-					// try matching uastring with regexes
-					for (j = k = 0; j < regex.length; j++) {
-						matches = regex[j].exec(this.getUA());
-						if (!!matches) {
-							for (p in props) {
-								match = matches[++k];
-								q = props[p];
-								// check if given property is actually array
-								if (typeof(q) === OBJ_TYPE && q.length > 0) {
-									if (q.length == 2) {
-										if (typeof(q[1]) == FUNC_TYPE) {
-											// assign modified match
-											result[q[0]] = q[1].call(this, match);
-										} else {
-											// assign given value, ignore regex match
-											result[q[0]] = q[1];
-										}
-									} else if (q.length == 3) {
-										// check whether function or regex
-										if (typeof(q[1]) === FUNC_TYPE && !(q[1].exec && q[1].test)) {
-											// call function (usually string mapper)
-											result[q[0]] = match ? q[1].call(this, match, q[2]) : undefined;
-										} else {
-											// sanitize match using given regex
-											result[q[0]] = match ? match.replace(q[1], q[2]) : undefined;
-										}
-									} else if (q.length == 4) {
-											result[q[0]] = match ? q[3].call(this, match.replace(q[1], q[2])) : undefined;
-									}
-								} else {
-									result[q] = match ? match : undefined;
-								}
-							}
-							break;
-						}
-					}
-	
-					if(!!matches) break; // break the loop immediately if match found
+					workerUrl = URL.createObjectURL(blob);
 				}
-				return result;
-			},
-	
-			str : function (str, map) {
-	
-				for (var i in map) {
-					// check if array
-					if (typeof(map[i]) === OBJ_TYPE && map[i].length > 0) {
-						for (var j in map[i]) {
-							if (util.has(map[i][j], str)) {
-								return (i === UNKNOWN) ? undefined : i;
-							}
-						}
-					} else if (util.has(map[i], str)) {
-						return (i === UNKNOWN) ? undefined : i;
+				var worker = new Worker(workerUrl);
+				worker.onmessage = function (event) {
+					var Bi = event.data[0], Bslice = event.data[1];
+					worksDone++;
+
+					if (i < p) {
+						worker.postMessage([N, r, p, B, i++]);
 					}
-				}
-				return str;
-			}
-		};
-	
-	
-		///////////////
-		// String map
-		//////////////
-	
-	
-		var maps = {
-	
-			browser : {
-				oldsafari : {
-					major : {
-						'1' : ['/8', '/1', '/3'],
-						'2' : '/4',
-						'?' : '/'
-					},
-					version : {
-						'1.0'   : '/8',
-						'1.2'   : '/1',
-						'1.3'   : '/3',
-						'2.0'   : '/412',
-						'2.0.2' : '/416',
-						'2.0.3' : '/417',
-						'2.0.4' : '/419',
-						'?'     : '/'
+
+					var length = Bslice.length, destPos = Bi * 128 * r, srcPos = 0;
+					while (length--) {
+						B[destPos++] = Bslice[srcPos++];
 					}
-				}
-			},
-	
-			device : {
-				sprint : {
-					model : {
-						'Evo Shift 4G' : '7373KT'
-					},
-					vendor : {
-						'HTC'       : 'APA',
-						'Sprint'    : 'Sprint'
-					}
-				}
-			},
-	
-			os : {
-				windows : {
-					version : {
-						'ME'        : '4.90',
-						'NT 3.11'   : 'NT3.51',
-						'NT 4.0'    : 'NT4.0',
-						'2000'      : 'NT 5.0',
-						'XP'        : ['NT 5.1', 'NT 5.2'],
-						'Vista'     : 'NT 6.0',
-						'7'         : 'NT 6.1',
-						'8'         : 'NT 6.2',
-						'RT'        : 'ARM'
-					}
-				}
-			}
-		};
-	
-	
-		//////////////
-		// Regex map
-		/////////////
-	
-	
-		var regexes = {
-	
-			browser : [[
-	
-				// Presto based
-				/(opera\smini)\/((\d+)?[\w\.-]+)/i,                                 // Opera Mini
-				/(opera\s[mobiletab]+).+version\/((\d+)?[\w\.-]+)/i,                // Opera Mobi/Tablet
-				/(opera).+version\/((\d+)?[\w\.]+)/i,                               // Opera > 9.80
-				/(opera)[\/\s]+((\d+)?[\w\.]+)/i                                    // Opera < 9.80
-				
-				], [NAME, VERSION, MAJOR], [
-	
-				/\s(opr)\/((\d+)?[\w\.]+)/i                                         // Opera Webkit
-				], [[NAME, 'Opera'], VERSION, MAJOR], [
-	
-				// Mixed
-				/(kindle)\/((\d+)?[\w\.]+)/i,                                       // Kindle
-				/(lunascape|maxthon|netfront|jasmine|blazer)[\/\s]?((\d+)?[\w\.]+)*/i,
-																					// Lunascape/Maxthon/Netfront/Jasmine/Blazer
-	
-				// Trident based
-				/(avant\s|iemobile|slim|baidu)(?:browser)?[\/\s]?((\d+)?[\w\.]*)/i,
-																					// Avant/IEMobile/SlimBrowser/Baidu
-				/(?:ms|\()(ie)\s((\d+)?[\w\.]+)/i,                                  // Internet Explorer
-	
-				// Webkit/KHTML based
-				/(rekonq)((?:\/)[\w\.]+)*/i,                                        // Rekonq
-				/(chromium|flock|rockmelt|midori|epiphany|silk|skyfire|ovibrowser|bolt)\/((\d+)?[\w\.-]+)/i
-																					// Chromium/Flock/RockMelt/Midori/Epiphany/Silk/Skyfire/Bolt
-				], [NAME, VERSION, MAJOR], [
-	
-				/(yabrowser)\/((\d+)?[\w\.]+)/i                                     // Yandex
-				], [[NAME, 'Yandex'], VERSION, MAJOR], [
-	
-				/(comodo_dragon)\/((\d+)?[\w\.]+)/i                                 // Comodo Dragon
-				], [[NAME, /_/g, ' '], VERSION, MAJOR], [
-	
-				/(chrome|omniweb|arora|[tizenoka]{5}\s?browser)\/v?((\d+)?[\w\.]+)/i
-																					// Chrome/OmniWeb/Arora/Tizen/Nokia
-				], [NAME, VERSION, MAJOR], [
-	
-				/(dolfin)\/((\d+)?[\w\.]+)/i                                        // Dolphin
-				], [[NAME, 'Dolphin'], VERSION, MAJOR], [
-	
-				/((?:android.+)crmo|crios)\/((\d+)?[\w\.]+)/i                       // Chrome for Android/iOS
-				], [[NAME, 'Chrome'], VERSION, MAJOR], [
-	
-				/version\/((\d+)?[\w\.]+).+?mobile\/\w+\s(safari)/i                 // Mobile Safari
-				], [VERSION, MAJOR, [NAME, 'Mobile Safari']], [
-	
-				/version\/((\d+)?[\w\.]+).+?(mobile\s?safari|safari)/i              // Safari & Safari Mobile
-				], [VERSION, MAJOR, NAME], [
-	
-				/webkit.+?(mobile\s?safari|safari)((\/[\w\.]+))/i                   // Safari < 3.0
-				], [NAME, [MAJOR, mapper.str, maps.browser.oldsafari.major], [VERSION, mapper.str, maps.browser.oldsafari.version]], [
-	
-				/(konqueror)\/((\d+)?[\w\.]+)/i,                                    // Konqueror
-				/(webkit|khtml)\/((\d+)?[\w\.]+)/i
-				], [NAME, VERSION, MAJOR], [
-	
-				// Gecko based
-				/(navigator|netscape)\/((\d+)?[\w\.-]+)/i                           // Netscape
-				], [[NAME, 'Netscape'], VERSION, MAJOR], [
-				/(swiftfox)/i,                                                      // Swiftfox
-				/(iceweasel|camino|chimera|fennec|maemo\sbrowser|minimo|conkeror)[\/\s]?((\d+)?[\w\.\+]+)/i,
-																					// Iceweasel/Camino/Chimera/Fennec/Maemo/Minimo/Conkeror
-				/(firefox|seamonkey|k-meleon|icecat|iceape|firebird|phoenix)\/((\d+)?[\w\.-]+)/i,
-																					// Firefox/SeaMonkey/K-Meleon/IceCat/IceApe/Firebird/Phoenix
-				/(mozilla)\/((\d+)?[\w\.]+).+rv\:.+gecko\/\d+/i,                    // Mozilla
-	
-				// Other
-				/(uc\s?browser|polaris|lynx|dillo|icab|doris|amaya|w3m|netsurf)[\/\s]?((\d+)?[\w\.]+)/i,
-																					// UCBrowser/Polaris/Lynx/Dillo/iCab/Doris/Amaya/w3m/NetSurf
-				/(links)\s\(((\d+)?[\w\.]+)/i,                                      // Links
-				/(gobrowser)\/?((\d+)?[\w\.]+)*/i,                                  // GoBrowser
-				/(ice\s?browser)\/v?((\d+)?[\w\._]+)/i,                             // ICE Browser
-				/(mosaic)[\/\s]((\d+)?[\w\.]+)/i                                    // Mosaic
-				], [NAME, VERSION, MAJOR]
-			],
-	
-			cpu : [[
-	
-				/(?:(amd|x(?:(?:86|64)[_-])?|wow|win)64)[;\)]/i                     // AMD64
-				], [[ARCHITECTURE, 'amd64']], [
-	
-				/((?:i[346]|x)86)[;\)]/i                                            // IA32
-				], [[ARCHITECTURE, 'ia32']], [
-	
-				// PocketPC mistakenly identified as PowerPC
-				/windows\s(ce|mobile);\sppc;/i
-				], [[ARCHITECTURE, 'arm']], [
-	
-				/((?:ppc|powerpc)(?:64)?)(?:\smac|;|\))/i                           // PowerPC
-				], [[ARCHITECTURE, /ower/, '', util.lowerize]], [
-	
-				/(sun4\w)[;\)]/i                                                    // SPARC
-				], [[ARCHITECTURE, 'sparc']], [
-	
-				/(ia64(?=;)|68k(?=\))|arm(?=v\d+;)|(?:irix|mips|sparc)(?:64)?(?=;)|pa-risc)/i
-																					// IA64, 68K, ARM, IRIX, MIPS, SPARC, PA-RISC
-				], [ARCHITECTURE, util.lowerize]
-			],
-	
-			device : [[
-	
-				/\((ipad|playbook);[\w\s\);-]+(rim|apple)/i                         // iPad/PlayBook
-				], [MODEL, VENDOR, [TYPE, TABLET]], [
-	
-				/(hp).+(touchpad)/i,                                                // HP TouchPad
-				/(kindle)\/([\w\.]+)/i,                                             // Kindle
-				/\s(nook)[\w\s]+build\/(\w+)/i,                                     // Nook
-				/(dell)\s(strea[kpr\s\d]*[\dko])/i                                  // Dell Streak
-				], [VENDOR, MODEL, [TYPE, TABLET]], [
-	
-				/\((ip[honed]+);.+(apple)/i                                         // iPod/iPhone
-				], [MODEL, VENDOR, [TYPE, MOBILE]], [
-	
-				/(blackberry)[\s-]?(\w+)/i,                                         // BlackBerry
-				/(blackberry|benq|palm(?=\-)|sonyericsson|acer|asus|dell|huawei|meizu|motorola)[\s_-]?([\w-]+)*/i,
-																					// BenQ/Palm/Sony-Ericsson/Acer/Asus/Dell/Huawei/Meizu/Motorola
-				/(hp)\s([\w\s]+\w)/i,                                               // HP iPAQ
-				/(asus)-?(\w+)/i                                                    // Asus
-				], [VENDOR, MODEL, [TYPE, MOBILE]], [
-				/\((bb10);\s(\w+)/i                                                 // BlackBerry 10
-				], [[VENDOR, 'BlackBerry'], MODEL, [TYPE, MOBILE]], [
-	
-				/android.+((transfo[prime\s]{4,10}\s\w+|eeepc|slider\s\w+))/i       // Asus Tablets
-				], [[VENDOR, 'Asus'], MODEL, [TYPE, TABLET]], [
-	
-				/(sony)\s(tablet\s[ps])/i                                           // Sony Tablets
-				], [VENDOR, MODEL, [TYPE, TABLET]], [
-	
-				/(nintendo)\s([wids3u]+)/i                                          // Nintendo
-				], [VENDOR, MODEL, [TYPE, CONSOLE]], [
-	
-				/((playstation)\s[3portablevi]+)/i                                  // Playstation
-				], [[VENDOR, 'Sony'], MODEL, [TYPE, CONSOLE]], [
-	
-				/(sprint\s(\w+))/i                                                  // Sprint Phones
-				], [[VENDOR, mapper.str, maps.device.sprint.vendor], [MODEL, mapper.str, maps.device.sprint.model], [TYPE, MOBILE]], [
-	
-				/(htc)[;_\s-]+([\w\s]+(?=\))|\w+)*/i,                               // HTC
-				/(zte)-(\w+)*/i,                                                    // ZTE
-				/(alcatel|geeksphone|huawei|lenovo|nexian|panasonic|(?=;\s)sony)[_\s-]?([\w-]+)*/i
-																					// Alcatel/GeeksPhone/Huawei/Lenovo/Nexian/Panasonic/Sony
-				], [VENDOR, [MODEL, /_/g, ' '], [TYPE, MOBILE]], [
-	
-				/\s((milestone|droid[2x]?))[globa\s]*\sbuild\//i,                   // Motorola
-				/(mot)[\s-]?(\w+)*/i
-				], [[VENDOR, 'Motorola'], MODEL, [TYPE, MOBILE]], [
-				/android.+\s((mz60\d|xoom[\s2]{0,2}))\sbuild\//i
-				], [[VENDOR, 'Motorola'], MODEL, [TYPE, TABLET]], [
-	
-				/android.+((sch-i[89]0\d|shw-m380s|gt-p\d{4}|gt-n8000|sgh-t8[56]9))/i
-				], [[VENDOR, 'Samsung'], MODEL, [TYPE, TABLET]], [                  // Samsung
-				/((s[cgp]h-\w+|gt-\w+|galaxy\snexus))/i,
-				/(sam[sung]*)[\s-]*(\w+-?[\w-]*)*/i,
-				/sec-((sgh\w+))/i
-				], [[VENDOR, 'Samsung'], MODEL, [TYPE, MOBILE]], [
-				/(sie)-(\w+)*/i                                                     // Siemens
-				], [[VENDOR, 'Siemens'], MODEL, [TYPE, MOBILE]], [
-	
-				/(maemo|nokia).*(n900|lumia\s\d+)/i,                                // Nokia
-				/(nokia)[\s_-]?([\w-]+)*/i
-				], [[VENDOR, 'Nokia'], MODEL, [TYPE, MOBILE]], [
-	
-				/android\s3\.[\s\w-;]{10}((a\d{3}))/i                               // Acer
-				], [[VENDOR, 'Acer'], MODEL, [TYPE, TABLET]], [
-	
-				/android\s3\.[\s\w-;]{10}(lg?)-([06cv9]{3,4})/i                     // LG
-				], [[VENDOR, 'LG'], MODEL, [TYPE, TABLET]], [
-				/((nexus\s4))/i,
-				/(lg)[e;\s-\/]+(\w+)*/i
-				], [[VENDOR, 'LG'], MODEL, [TYPE, MOBILE]], [
-	
-				/(mobile|tablet);.+rv\:.+gecko\//i                                  // Unidentifiable
-				], [TYPE, VENDOR, MODEL]
-			],
-	
-			engine : [[
-	
-				/(presto)\/([\w\.]+)/i,                                             // Presto
-				/(webkit|trident|netfront|netsurf|amaya|lynx|w3m)\/([\w\.]+)/i,     // WebKit/Trident/NetFront/NetSurf/Amaya/Lynx/w3m
-				/(khtml|tasman|links)[\/\s]\(?([\w\.]+)/i,                          // KHTML/Tasman/Links
-				/(icab)[\/\s]([23]\.[\d\.]+)/i                                      // iCab
-				], [NAME, VERSION], [
-	
-				/rv\:([\w\.]+).*(gecko)/i                                           // Gecko
-				], [VERSION, NAME]
-			],
-	
-			os : [[
-	
-				// Windows based
-				/(windows)\snt\s6\.2;\s(arm)/i,                                     // Windows RT
-				/(windows\sphone(?:\sos)*|windows\smobile|windows)[\s\/]?([ntce\d\.\s]+\w)/i
-				], [NAME, [VERSION, mapper.str, maps.os.windows.version]], [
-				/(win(?=3|9|n)|win\s9x\s)([nt\d\.]+)/i
-				], [[NAME, 'Windows'], [VERSION, mapper.str, maps.os.windows.version]], [
-	
-				// Mobile/Embedded OS
-				/\((bb)(10);/i                                                      // BlackBerry 10
-				], [[NAME, 'BlackBerry'], VERSION], [
-				/(blackberry)\w*\/?([\w\.]+)*/i,                                    // Blackberry
-				/(tizen)\/([\w\.]+)/i,                                              // Tizen
-				/(android|webos|palm\os|qnx|bada|rim\stablet\sos|meego)[\/\s-]?([\w\.]+)*/i
-																					// Android/WebOS/Palm/QNX/Bada/RIM/MeeGo
-				], [NAME, VERSION], [
-				/(symbian\s?os|symbos|s60(?=;))[\/\s-]?([\w\.]+)*/i                 // Symbian
-				], [[NAME, 'Symbian'], VERSION],[
-				/mozilla.+\(mobile;.+gecko.+firefox/i                               // Firefox OS
-				], [[NAME, 'Firefox OS'], VERSION], [
-	
-				// Console
-				/(nintendo|playstation)\s([wids3portablevu]+)/i,                    // Nintendo/Playstation
-	
-				// GNU/Linux based
-				/(mint)[\/\s\(]?(\w+)*/i,                                           // Mint
-				/(joli|[kxln]?ubuntu|debian|[open]*suse|gentoo|arch|slackware|fedora|mandriva|centos|pclinuxos|redhat|zenwalk)[\/\s-]?([\w\.-]+)*/i,
-																					// Joli/Ubuntu/Debian/SUSE/Gentoo/Arch/Slackware
-																					// Fedora/Mandriva/CentOS/PCLinuxOS/RedHat/Zenwalk
-				/(hurd|linux)\s?([\w\.]+)*/i,                                       // Hurd/Linux
-				/(gnu)\s?([\w\.]+)*/i                                               // GNU
-				], [NAME, VERSION], [
-	
-				/(cros)\s[\w]+\s([\w\.]+\w)/i                                       // Chromium OS
-				], [[NAME, 'Chromium OS'], VERSION],[
-	
-				// Solaris
-				/(sunos)\s?([\w\.]+\d)*/i                                           // Solaris
-				], [[NAME, 'Solaris'], VERSION], [
-	
-				// BSD based
-				/\s([frentopc-]{0,4}bsd|dragonfly)\s?([\w\.]+)*/i                   // FreeBSD/NetBSD/OpenBSD/PC-BSD/DragonFly
-				], [NAME, VERSION],[
-	
-				/(ip[honead]+)(?:.*os\s*([\w]+)*\slike\smac|;\sopera)/i             // iOS
-				], [[NAME, 'iOS'], [VERSION, /_/g, '.']], [
-	
-				/(mac\sos\sx)\s?([\w\s\.]+\w)*/i                                    // Mac OS
-				], [NAME, [VERSION, /_/g, '.']], [
-	
-				// Other
-				/(haiku)\s(\w+)/i,                                                  // Haiku
-				/(aix)\s((\d)(?=\.|\)|\s)[\w\.]*)*/i,                               // AIX
-				/(macintosh|mac(?=_powerpc)|plan\s9|minix|beos|os\/2|amigaos|morphos|risc\sos)/i,
-																					// Plan9/Minix/BeOS/OS2/AmigaOS/MorphOS/RISCOS
-				/(unix)\s?([\w\.]+)*/i                                              // UNIX
-				], [NAME, VERSION]
-			]
-		};
-	
-	
-		/////////////////
-		// Constructor
-		////////////////
-	
-	
-		var UAParser = function (uastring) {
-	
-			var ua = uastring || ((window && window.navigator && window.navigator.userAgent) ? window.navigator.userAgent : EMPTY);
-	
-			if (!(this instanceof UAParser)) {
-				return new UAParser(uastring).getResult();
-			}
-			this.getBrowser = function () {
-				return mapper.rgx.apply(this, regexes.browser);
-			};
-			this.getCPU = function () {
-				return mapper.rgx.apply(this, regexes.cpu);
-			};
-			this.getDevice = function () {
-				return mapper.rgx.apply(this, regexes.device);
-			};
-			this.getEngine = function () {
-				return mapper.rgx.apply(this, regexes.engine);
-			};
-			this.getOS = function () {
-				return mapper.rgx.apply(this, regexes.os);
-			};
-			this.getResult = function() {
-				return {
-					ua      : this.getUA(),
-					browser : this.getBrowser(),
-					engine  : this.getEngine(),
-					os      : this.getOS(),
-					device  : this.getDevice(),
-					cpu     : this.getCPU()
-				};
-			};
-			this.getUA = function () {
-				return ua;
-			};
-			this.setUA = function (uastring) {
-				ua = uastring;
-				return this;
-			};
-			this.setUA(ua);
-		};
-	
-	
-		///////////
-		// Export
-		//////////
-	
-	
-		// check js environment 
-		if (typeof(exports) !== UNDEF_TYPE) {
-			// nodejs env
-			if (typeof(module) !== UNDEF_TYPE && module.exports) {
-				exports = module.exports = UAParser;
-			}
-			exports.UAParser = UAParser;
-		} else {
-			// browser env
-			window.UAParser = UAParser;        
-			// requirejs env (optional)
-			if (typeof(define) === FUNC_TYPE && define.amd) {
-				define(function () {
-					return UAParser;
-				});
-			}
-			// jQuery specific (optional)
-			if (typeof(window.jQuery) !== UNDEF_TYPE) {
-				var $ = window.jQuery;
-				var parser = new UAParser();
-				$.ua = parser.getResult();
-				$.ua.get = function() {
-					return parser.getUA();
-				};
-				$.ua.set = function (uastring) {
-					parser.setUA(uastring);
-					var result = parser.getResult();
-					for (var prop in result) {
-						$.ua[prop] = result[prop];
+
+					if (worksDone == p) {
+						callback(Crypto.PBKDF2(passwd, B, dkLen, PBKDF2_opts));
 					}
 				};
+				return worker;
+			};
+			var workers = [makeWorker(), makeWorker()];
+			workers[0].postMessage([N, r, p, B, i++]);
+			if (p > 1) {
+				workers[1].postMessage([N, r, p, B, i++]);
 			}
+		} catch (e) {
+			window.setTimeout(function () {
+				scryptCore();
+				callback(Crypto.PBKDF2(passwd, B, dkLen, PBKDF2_opts));
+			}, 0);
 		}
-	
-	})(this);
+
+		// using this function to enclose everything needed to create a worker (but also invokable directly for synchronous use)
+		function scryptCore() {
+			var XY = [], V = [];
+
+			if (typeof B === 'undefined') {
+				onmessage = function (event) {
+					var data = event.data;
+					var N = data[0], r = data[1], p = data[2], B = data[3], i = data[4];
+
+					var Bslice = [];
+					arraycopy32(B, i * 128 * r, Bslice, 0, 128 * r);
+					smix(Bslice, 0, r, N, V, XY);
+
+					postMessage([i, Bslice]);
+				};
+			} else {
+				for (var i = 0; i < p; i++) {
+					smix(B, i * 128 * r, r, N, V, XY);
+				}
+			}
+
+			function smix(B, Bi, r, N, V, XY) {
+				var Xi = 0;
+				var Yi = 128 * r;
+				var i;
+
+				arraycopy32(B, Bi, XY, Xi, Yi);
+
+				for (i = 0; i < N; i++) {
+					arraycopy32(XY, Xi, V, i * Yi, Yi);
+					blockmix_salsa8(XY, Xi, Yi, r);
+				}
+
+				for (i = 0; i < N; i++) {
+					var j = integerify(XY, Xi, r) & (N - 1);
+					blockxor(V, j * Yi, XY, Xi, Yi);
+					blockmix_salsa8(XY, Xi, Yi, r);
+				}
+
+				arraycopy32(XY, Xi, B, Bi, Yi);
+			}
+
+			function blockmix_salsa8(BY, Bi, Yi, r) {
+				var X = [];
+				var i;
+
+				arraycopy32(BY, Bi + (2 * r - 1) * 64, X, 0, 64);
+
+				for (i = 0; i < 2 * r; i++) {
+					blockxor(BY, i * 64, X, 0, 64);
+					salsa20_8(X);
+					arraycopy32(X, 0, BY, Yi + (i * 64), 64);
+				}
+
+				for (i = 0; i < r; i++) {
+					arraycopy32(BY, Yi + (i * 2) * 64, BY, Bi + (i * 64), 64);
+				}
+
+				for (i = 0; i < r; i++) {
+					arraycopy32(BY, Yi + (i * 2 + 1) * 64, BY, Bi + (i + r) * 64, 64);
+				}
+			}
+
+			function R(a, b) {
+				return (a << b) | (a >>> (32 - b));
+			}
+
+			function salsa20_8(B) {
+				var B32 = new Array(32);
+				var x = new Array(32);
+				var i;
+
+				for (i = 0; i < 16; i++) {
+					B32[i] = (B[i * 4 + 0] & 0xff) << 0;
+					B32[i] |= (B[i * 4 + 1] & 0xff) << 8;
+					B32[i] |= (B[i * 4 + 2] & 0xff) << 16;
+					B32[i] |= (B[i * 4 + 3] & 0xff) << 24;
+				}
+
+				arraycopy(B32, 0, x, 0, 16);
+
+				for (i = 8; i > 0; i -= 2) {
+					x[4] ^= R(x[0] + x[12], 7); x[8] ^= R(x[4] + x[0], 9);
+					x[12] ^= R(x[8] + x[4], 13); x[0] ^= R(x[12] + x[8], 18);
+					x[9] ^= R(x[5] + x[1], 7); x[13] ^= R(x[9] + x[5], 9);
+					x[1] ^= R(x[13] + x[9], 13); x[5] ^= R(x[1] + x[13], 18);
+					x[14] ^= R(x[10] + x[6], 7); x[2] ^= R(x[14] + x[10], 9);
+					x[6] ^= R(x[2] + x[14], 13); x[10] ^= R(x[6] + x[2], 18);
+					x[3] ^= R(x[15] + x[11], 7); x[7] ^= R(x[3] + x[15], 9);
+					x[11] ^= R(x[7] + x[3], 13); x[15] ^= R(x[11] + x[7], 18);
+					x[1] ^= R(x[0] + x[3], 7); x[2] ^= R(x[1] + x[0], 9);
+					x[3] ^= R(x[2] + x[1], 13); x[0] ^= R(x[3] + x[2], 18);
+					x[6] ^= R(x[5] + x[4], 7); x[7] ^= R(x[6] + x[5], 9);
+					x[4] ^= R(x[7] + x[6], 13); x[5] ^= R(x[4] + x[7], 18);
+					x[11] ^= R(x[10] + x[9], 7); x[8] ^= R(x[11] + x[10], 9);
+					x[9] ^= R(x[8] + x[11], 13); x[10] ^= R(x[9] + x[8], 18);
+					x[12] ^= R(x[15] + x[14], 7); x[13] ^= R(x[12] + x[15], 9);
+					x[14] ^= R(x[13] + x[12], 13); x[15] ^= R(x[14] + x[13], 18);
+				}
+
+				for (i = 0; i < 16; ++i) B32[i] = x[i] + B32[i];
+
+				for (i = 0; i < 16; i++) {
+					var bi = i * 4;
+					B[bi + 0] = (B32[i] >> 0 & 0xff);
+					B[bi + 1] = (B32[i] >> 8 & 0xff);
+					B[bi + 2] = (B32[i] >> 16 & 0xff);
+					B[bi + 3] = (B32[i] >> 24 & 0xff);
+				}
+			}
+
+			function blockxor(S, Si, D, Di, len) {
+				var i = len >> 6;
+				while (i--) {
+					D[Di++] ^= S[Si++]; D[Di++] ^= S[Si++];
+					D[Di++] ^= S[Si++]; D[Di++] ^= S[Si++];
+					D[Di++] ^= S[Si++]; D[Di++] ^= S[Si++];
+					D[Di++] ^= S[Si++]; D[Di++] ^= S[Si++];
+
+					D[Di++] ^= S[Si++]; D[Di++] ^= S[Si++];
+					D[Di++] ^= S[Si++]; D[Di++] ^= S[Si++];
+					D[Di++] ^= S[Si++]; D[Di++] ^= S[Si++];
+					D[Di++] ^= S[Si++]; D[Di++] ^= S[Si++];
+
+					D[Di++] ^= S[Si++]; D[Di++] ^= S[Si++];
+					D[Di++] ^= S[Si++]; D[Di++] ^= S[Si++];
+					D[Di++] ^= S[Si++]; D[Di++] ^= S[Si++];
+					D[Di++] ^= S[Si++]; D[Di++] ^= S[Si++];
+
+					D[Di++] ^= S[Si++]; D[Di++] ^= S[Si++];
+					D[Di++] ^= S[Si++]; D[Di++] ^= S[Si++];
+					D[Di++] ^= S[Si++]; D[Di++] ^= S[Si++];
+					D[Di++] ^= S[Si++]; D[Di++] ^= S[Si++];
+
+					D[Di++] ^= S[Si++]; D[Di++] ^= S[Si++];
+					D[Di++] ^= S[Si++]; D[Di++] ^= S[Si++];
+					D[Di++] ^= S[Si++]; D[Di++] ^= S[Si++];
+					D[Di++] ^= S[Si++]; D[Di++] ^= S[Si++];
+
+					D[Di++] ^= S[Si++]; D[Di++] ^= S[Si++];
+					D[Di++] ^= S[Si++]; D[Di++] ^= S[Si++];
+					D[Di++] ^= S[Si++]; D[Di++] ^= S[Si++];
+					D[Di++] ^= S[Si++]; D[Di++] ^= S[Si++];
+
+					D[Di++] ^= S[Si++]; D[Di++] ^= S[Si++];
+					D[Di++] ^= S[Si++]; D[Di++] ^= S[Si++];
+					D[Di++] ^= S[Si++]; D[Di++] ^= S[Si++];
+					D[Di++] ^= S[Si++]; D[Di++] ^= S[Si++];
+
+					D[Di++] ^= S[Si++]; D[Di++] ^= S[Si++];
+					D[Di++] ^= S[Si++]; D[Di++] ^= S[Si++];
+					D[Di++] ^= S[Si++]; D[Di++] ^= S[Si++];
+					D[Di++] ^= S[Si++]; D[Di++] ^= S[Si++];
+				}
+			}
+
+			function integerify(B, bi, r) {
+				var n;
+
+				bi += (2 * r - 1) * 64;
+
+				n = (B[bi + 0] & 0xff) << 0;
+				n |= (B[bi + 1] & 0xff) << 8;
+				n |= (B[bi + 2] & 0xff) << 16;
+				n |= (B[bi + 3] & 0xff) << 24;
+
+				return n;
+			}
+
+			function arraycopy(src, srcPos, dest, destPos, length) {
+				while (length--) {
+					dest[destPos++] = src[srcPos++];
+				}
+			}
+
+			function arraycopy32(src, srcPos, dest, destPos, length) {
+				var i = length >> 5;
+				while (i--) {
+					dest[destPos++] = src[srcPos++]; dest[destPos++] = src[srcPos++];
+					dest[destPos++] = src[srcPos++]; dest[destPos++] = src[srcPos++];
+					dest[destPos++] = src[srcPos++]; dest[destPos++] = src[srcPos++];
+					dest[destPos++] = src[srcPos++]; dest[destPos++] = src[srcPos++];
+
+					dest[destPos++] = src[srcPos++]; dest[destPos++] = src[srcPos++];
+				dest[destPos++] = src[srcPos++]; dest[destPos++] = src[srcPos++];
+					dest[destPos++] = src[srcPos++]; dest[destPos++] = src[srcPos++];
+					dest[destPos++] = src[srcPos++]; dest[destPos++] = src[srcPos++];
+
+					dest[destPos++] = src[srcPos++]; dest[destPos++] = src[srcPos++];
+					dest[destPos++] = src[srcPos++]; dest[destPos++] = src[srcPos++];
+					dest[destPos++] = src[srcPos++]; dest[destPos++] = src[srcPos++];
+					dest[destPos++] = src[srcPos++]; dest[destPos++] = src[srcPos++];
+
+					dest[destPos++] = src[srcPos++]; dest[destPos++] = src[srcPos++];
+					dest[destPos++] = src[srcPos++]; dest[destPos++] = src[srcPos++];
+					dest[destPos++] = src[srcPos++]; dest[destPos++] = src[srcPos++];
+					dest[destPos++] = src[srcPos++]; dest[destPos++] = src[srcPos++];
+				}
+			}
+		} // scryptCore
+	}; // window.Crypto_scrypt
+})();
 	</script>
-
-
-<!--	****************************************************
-		***************** BEGIN STYLES *********************
-		**************************************************** -->
-
-
 	<style type="text/css">
 		.more { background: url(data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABEAAAARCAYAAAA7bUf6AAAABHNCSVQICAgIfAhkiAAAAAlwSFlzAAALEgAACxIB0t1+/AAAABx0RVh0U29mdHdhcmUAQWRvYmUgRmlyZXdvcmtzIENTNXG14zYAAAAWdEVYdENyZWF0aW9uIFRpbWUAMDEvMDIvMTLltnQyAAAB1UlEQVQ4jYWTS04bQRCGv3q0x8gMYJCwknCGLDgLVwiH4grhLFaUXdhkQ0A8pBg/FOLpnmbhMYzxRKlNS1Vdf/31V5XknGnb+eXJCBjzbzu9OLu+azu845Opysej4wHmshF4uJ2TUrb3CV0gIBAKRboC5C2vdkDE9fdty6/xDegvXz+NgDbFUejZ+PjDgExmtpxS9vYwMe5u5iyX8RRoa5Ic+C4qx9KUN1MGu4E618yqJ5axAp44KA7ZL3eYzp/HKdVIw7WK8d6BuDvcod9TQlBEIOXEdPlElSoUJabIIs4Z7h9yNDwgqOMayLXw7epHVIBggrsgspZPUBQyiCgugRQji7TAVDF1XB2TlQoOYCqovkmpopS9fcoiM3ue0rOCYf8IU8NklWxiiOQ3EPXtWagIqo6KYWYEc4IGvMViA6RrnCJKVS9B8ypRHG1YKNa0Ur+C+MPt/I2BKWVZUO4FgvQ47PcptEDF+T2Z8TiZUMWIyGtpd+Bze5VTSqP57O/4YG+AN/RXbSiPkwmL5z/be/L+mM4vT2JKeUW7EXD1erMz/Lo4u77f0K9DDhdA1XG11jh9vWBb99Z9gAg5QZ2hzpmUa0RSW4f/gqSY0s3Vz+tufEjvHS8Tg6BXC7qVbQAAAABJRU5ErkJggg==)
 					no-repeat left center; width: 17px; height: 17px; display: inline-block; float: right; }
@@ -6195,8 +5943,8 @@
           	<div id="culturemenu">
               <!--
               <span><a href="?culture=en" id="cultureen" class="selected">English</a></span> | 
-              <span><a href="?culture=es" id="culturees">Español</a></span> | 
-              <span><a href="?culture=fr" id="culturefr">Français</a></span> -->
+              <span><a href="?culture=es" id="culturees">Espaï¿½ol</a></span> | 
+              <span><a href="?culture=fr" id="culturefr">Franï¿½ais</a></span> -->
               &nbsp;
           	</div>
 			<div id="tagline">Open Source Client-Side JavaScript litecoin Wallet Generator</div>
@@ -6692,29 +6440,29 @@
 
 				"es": {
 					// javascript alerts or messages
-					"paperlabellitecoinaddress": "Dirección litecoin:",
+					"paperlabellitecoinaddress": "Direcciï¿½n litecoin:",
 					"paperlabelprivatekey": "Clave privada (formato para importar):",
 
 					// header and menu html
-					"tagline": "Generador de carteras litecoin de código abierto en lado de cliente con Javascript",
-					"generatelabellitecoinaddress": "Generando dirección litecoin...",
-					"generatelabelmovemouse": "<blink>Mueve un poco el ratón para crear entropía...</blink>",
+					"tagline": "Generador de carteras litecoin de cï¿½digo abierto en lado de cliente con Javascript",
+					"generatelabellitecoinaddress": "Generando direcciï¿½n litecoin...",
+					"generatelabelmovemouse": "<blink>Mueve un poco el ratï¿½n para crear entropï¿½a...</blink>",
 					"calibratewallet": "Calibrate Printer (es)",
 					"paperwallet": "Cartera en papel",
 					"landwallet": "Welcome (Es)",
 
 					// footer html
 					"footerlabeldonations": "Donaciones:",
-					"footerlabeltranslatedby": "Traducción: <b>12345</b>Vypv2QSmuRXcciT5oEB27mPbWGeva",
-					"footerlabelpgp": "Clave pública PGP",
-					"footerlabelversion": "Histórico de versiones",
+					"footerlabeltranslatedby": "Traducciï¿½n: <b>12345</b>Vypv2QSmuRXcciT5oEB27mPbWGeva",
+					"footerlabelpgp": "Clave pï¿½blica PGP",
+					"footerlabelversion": "Histï¿½rico de versiones",
 					"footerlabelgithub": "Repositorio GitHub",
 					"footerlabelcopyright1": "&copy; Copyright 2013 Canton Becker.",
-					"footerlabelcopyright2": "Copyright del código JavaScript: en el fuente.",
-					"footerlabelnowarranty": "Sin garantía.",
+					"footerlabelcopyright2": "Copyright del cï¿½digo JavaScript: en el fuente.",
+					"footerlabelnowarranty": "Sin garantï¿½a.",
 
 					// paper wallet html
-					"paperlabeladdressesperpage": "Direcciones por página:",
+					"paperlabeladdressesperpage": "Direcciones por pï¿½gina:",
 					"paperlabeladdressestogenerate": "Direcciones en total:",
 					"papergenerate": "Generar",
 					"paperprint": "Imprimir"
@@ -6723,11 +6471,11 @@
 				"fr": {
 					// javascript alerts or messages
 					"paperlabellitecoinaddress": "Adresse litecoin:",
-					"paperlabelprivatekey": "Clé Privée (Format d'importation de porte-monnaie):",
+					"paperlabelprivatekey": "Clï¿½ Privï¿½e (Format d'importation de porte-monnaie):",
 
 					// header and menu html
-					"tagline": "Générateur De Porte-Monnaie litecoin Javascript Hors-Ligne",
-					"generatelabellitecoinaddress": "Création de l'adresse litecoin...",
+					"tagline": "Gï¿½nï¿½rateur De Porte-Monnaie litecoin Javascript Hors-Ligne",
+					"generatelabellitecoinaddress": "Crï¿½ation de l'adresse litecoin...",
 					"generatelabelmovemouse": "<blink>BOUGEZ votre souris pour ajouter de l'entropie...</blink>",
 					"calibratewallet": "Calibrate Printer (fr)",
 					"paperwallet": "Porte-Monnaie Papier",
@@ -6736,18 +6484,18 @@
 					// footer html
 					"footerlabeldonations": "Dons:",
 					"footerlabeltranslatedby": "Traduction: 1Gy7NYSJNUYqUdXTBow5d7bCUEJkUFDFSq",
-					"footerlabelpgp": "Clé Publique PGP",
-					"footerlabelversion": "Historique De Version Signé",
-					"footerlabelgithub": "Dépôt GitHub",
+					"footerlabelpgp": "Clï¿½ Publique PGP",
+					"footerlabelversion": "Historique De Version Signï¿½",
+					"footerlabelgithub": "Dï¿½pï¿½t GitHub",
 					"footerlabelcopyright1": "&copy; Copyright 2013 Canton Becker.",
 					"footerlabelcopyright2": "Les droits d'auteurs JavaScript sont inclus dans le code source.",
 					"footerlabelnowarranty": "Aucune garantie.",
-					"newaddress": "Générer Une Nouvelle Adresse",
+					"newaddress": "Gï¿½nï¿½rer Une Nouvelle Adresse",
 
 					// paper wallet html
 					"paperlabeladdressesperpage": "Adresses par page:",
-					"paperlabeladdressestogenerate": "Nombre d'adresses à créer:",
-					"papergenerate": "Générer",
+					"paperlabeladdressestogenerate": "Nombre d'adresses ï¿½ crï¿½er:",
+					"papergenerate": "Gï¿½nï¿½rer",
 					"paperprint": "Imprimer"
 				}
 			}
