@@ -1000,7 +1000,7 @@
 
 		// ISO/IEC 7816-4 padding.
 		//
-		// Pads the plain text with an 0x80 byte followed by as many 0x00
+		// Pads the plain text with an 0xb0 byte followed by as many 0x00
 		// bytes are required to complete the block.
 		C_pad.iso7816 = {
 			pad: function (cipher, message) {
@@ -4711,7 +4711,7 @@
 			this.version = litecoin.Address.networkVersion;
 		};
 
-		litecoin.Address.networkVersion = 0x00; // mainnet
+		litecoin.Address.networkVersion = 0x30; // mainnet
 
 		/**
 		* Serialize this object as a standard litecoin address.
@@ -5088,7 +5088,7 @@
 				this.compressed = (this.compressed == undefined) ? !!ECKey.compressByDefault : this.compressed;
 			};
 
-			ECKey.privateKeyPrefix = 0x80; // mainnet 0x80    testnet 0xEF
+			ECKey.privateKeyPrefix = 0xb0; // mainnet 0x80    testnet 0xEF
 
 			/**
 			* Whether public keys should be returned compressed by default.
@@ -5273,7 +5273,7 @@
 			// 51 characters base58, always starts with a '6'
 			ECKey.isWalletImportFormat = function (key) {
 				key = key.toString();
-				return (ECKey.privateKeyPrefix == 0x80) ?
+				return (ECKey.privateKeyPrefix == 0xb0) ?
 							(/^6[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{50}$/.test(key)) :
 							(/^9[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{50}$/.test(key));
 			};
@@ -5281,7 +5281,7 @@
 			// 52 characters base58
 			ECKey.isCompressedWalletImportFormat = function (key) {
 				key = key.toString();
-				return (ECKey.privateKeyPrefix == 0x80) ?
+				return (ECKey.privateKeyPrefix == 0xb0) ?
 							(/^T[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{51}$/.test(key)) :
 							(/^c[123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz]{51}$/.test(key));
 			};
@@ -5986,7 +5986,12 @@
 				<div class="instructionsarea">
 					<div class="notes">
 						<h1><span id="instructions0">Welcome! Let's print out a beautiful and secure wallet for your litecoins.</span></h1>
-
+						
+						<span id="blurb1">This website is a work in progress. It is forked from Canton Becker's bitcoinpaperwallet.com code and uses artwork created by Adrien Grelet. </span>
+						<span id="blurb2">Donations towards the running of this site are gratefully accepted: <strong>LLdP7YHk1qGtbKnu6r1McmypwN4JDG7Ha9</strong> </span>
+						<br /><br />
+						<h4><span id="blurb3">I am currently looking into selling litecoin branded holographic strips and vinyl sleeves. If you are interested in purchasing any of these please drop me an email at <a href="mailto:litecoinpaperwallet@gmail.com">litecoinpaperwallet@gmail.com</a> and I will get back to you.</span></h4>
+						<br /><br />
 						<span id="instructions1">Here's an overview of what will happen, step by step.</span>
 						<br /><br />
 
@@ -6001,7 +6006,7 @@
 						<br /><br />	
 						<span id="instructions5"><b>Step 3: Print Back</b> Then you will put the same page back in your printer (but upside down) to print out the back side of your wallet. This isn't just for good looks: the back side design includes additional tamper-proof safeguards.</span>
 						<br /><br />	
-						<span id="instructions6"><b>Step 4: Cut, Fold, Seal &amp; Fund</b> Find your scissors! Time to cut out your wallet, fold it, and seal it  with tape (or better yet <a href="https://litecoinpaperwallet.com/#purchase" target="_blank">tamper-proof holographic tape</a>!) Now you're ready to transfer litecoins from your online holdings to your new wallet.</span>
+						<span id="instructions6"><b>Step 4: Cut, Fold, Seal &amp; Fund</b> Find your scissors! Time to cut out your wallet, fold it, and seal it  with tape (or better yet tamper-proof holographic tape!) Now you're ready to transfer litecoins from your online holdings to your new wallet.</span>
                                                 
 					</div>
 				</div>
@@ -6100,10 +6105,6 @@
 
                         <img src="images/finished-sample-sealed.jpg" width="400" height="203" alt="Sealed Wallet">
 
-						<br /><br />	
-						<span id="instructions15" class="highlighted"><a href="https://litecoinpaperwallet.com/#purchase" target="_blank">Click here to order some holographic tamper-proof tape designed for this job &raquo;</a></span>
-						<br /><br />	
-
 						<h1><span id="instructions16">How to add funds to your wallet:</span></h1>
 
 						<span id="instructions17">Send litecoins to the address (or QR code) where your wallet says "PUBLIC ADDRESS".</span>
@@ -6111,7 +6112,7 @@
                         
 						<h1><span id="instructions18">How to withdraw funds from your wallet:</span></h1>
 
-						<span id="instructions19" class="highlighted"><a href="https://litecoinpaperwallet.com/#security" target="_blank">Click here for important tips on withdrawing funds from your wallet &raquo;</a></span>
+						<span id="instructions19" class="highlighted">It is imperative that you import the entire balance from your paper wallet. If you attempt to withdraw a portion of the funds in the wallet you will most likely lose the remainder.&raquo;</a></span>
                         
 					</div>
 				</div>
@@ -6126,17 +6127,14 @@
 				<div>
 					<span class="item">
                     <span id="footerlabeldonations">Donations:</span><br />
+					<strong>This Site:</strong> LLdP7YHk1qGtbKnu6r1McmypwN4JDG7Ha9<br />
                     <strong>Folding Design:</strong> LZ6AJ18APDP9RfxyHwSmujLYMFLXDBbdRZ<br />
-                    <strong>bitaddress.org code:</strong> 1NiNja1bUmhSoTXozBRBEtR8LeF9TGbZBN</span>
+                    <strong>bitcoinpaperwallet</strong> 1Pjg628vjMLBvADrPHsthtzKiryM2y46DG</span>
 					<span class="item" id="footerlabeltranslatedby"></span>
 				</div>
 			</div>
-			<div class="authorpgp">
-				<span class="item"><a href="https://github.com/pyroboynroses/bitcoinpaperwallet" target="_blank" id="footerlabelgithub">GitHub Repository (ZIP Download)</a></span>
-                <span class="item"><a href="?unittests=1">Run Local Unit Tests</a></span>
-			</div>
 			<div class="copyright">
-				<span id="footerlabelcopyright1">&copy; Copyright 2013 Adrien Grelet - based upon Canton Becker fork of bitaddress</span>
+				<span id="footerlabelcopyright1">&copy; Copyright 2013 Peter Nyssen - based upon Canton Becker fork of bitaddress using artwork by Adrien Grelet</span>
 				<span id="footerlabelcopyright2">JavaScript copyrights are included in the source.</span>
 				<span id="footerlabelnowarranty">No warranty.</span>
 			</div>
